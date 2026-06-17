@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentGuard - Arc AI Agents</title>
+<script src="https://cdn.ethers.io/lib/ethers-6.13.4.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0e1a;color:#e2e8f0;font-family:Inter,system-ui,sans-serif}
+.header{background:linear-gradient(135deg,#0a0e1a,#ef444422);padding:2rem;border-bottom:1px solid #ef444433;display:flex;align-items:center;justify-content:space-between}
+.header h1{color:#ef4444;font-size:1.8rem}
+.tag{background:#ef444433;color:#ef4444;padding:.3rem .8rem;border-radius:9999px;font-size:.8rem}
+.wallet-bar{background:#ef444411;padding:1rem 2rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid #ef444422}
+.btn{background:#ef4444;color:#0a0e1a;padding:.5rem 1.5rem;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+.info{font-size:.85rem;color:#94a3b8}
+.container{max-width:900px;margin:2rem auto;padding:0 1rem}
+.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;margin-bottom:2rem}
+.feature{background:#ef444411;padding:1rem;border-radius:8px;border:1px solid #ef444422}
+.card{background:#ef444408;border:1px solid #ef444422;border-radius:12px;padding:1.5rem;margin-bottom:1rem}
+.card h3{color:#ef4444;margin-bottom:1rem}
+.ig{display:flex;gap:.5rem;flex-wrap:wrap}
+.ig input,.ig select{background:#ef444411;border:1px solid #ef444433;color:#e2e8f0;padding:.6rem 1rem;border-radius:8px;flex:1;min-width:150px}
+.ig button{background:#ef4444;color:#0a0e1a;padding:.6rem 1.2rem;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+.rb{background:#ef444408;border:1px dashed #ef444422;border-radius:8px;padding:1rem;margin-top:1rem;font-size:.85rem;color:#94a3b8;min-height:60px;white-space:pre-wrap}
+.footer{text-align:center;padding:2rem;color:#475569;font-size:.8rem}
+.footer a{color:#ef4444}
+@media(max-width:600px){.header{padding:1rem}.ig{flex-direction:column}.ig input{min-width:100%}}
+</style>
+</head>
+<body>
+<div class="header"><h1>AgentGuard</h1><span class="tag">AI Agents</span></div>
+<div class="wallet-bar"><button class="btn" onclick="connectWallet()">Connect Wallet</button><span class="info" id="walletInfo">Not connected</span></div>
+<div class="container">
+<div class="features"><div class="feature"><span style="color:#ef4444">&#10003;</span> Multi-factor risk assessment</div>
+<div class="feature"><span style="color:#ef4444">&#10003;</span> Custom alert rules</div>
+<div class="feature"><span style="color:#ef4444">&#10003;</span> Blacklist/whitelist</div>
+<div class="feature"><span style="color:#ef4444">&#10003;</span> Risk level tiers</div>
+<div class="feature"><span style="color:#ef4444">&#10003;</span> Monitoring history</div></div>
+<div class="card">
+            <h3>Assess Wallet Risk</h3>
+            <div class="input-group">
+                <input id="riskAddr" type="text" placeholder="Wallet address" />
+                <button onclick="assessRisk()">Assess</button>
+            </div>
+            <div id="riskRes" class="result-box"></div>
+        </div>
+        <div class="card">
+            <h3>Alert Rules</h3>
+            <div class="input-group">
+                <input id="alertThreshold" type="number" placeholder="Threshold USDC" />
+                <button onclick="addAlertRule()">Add Rule</button>
+            </div>
+            <div id="alertRes" class="result-box"></div>
+        </div>
+        <div class="card">
+            <h3>Alert History</h3>
+            <button onclick="getAlertHistory()">Load</button>
+            <div id="alertHistRes" class="result-box"></div>
+        </div>
+</div>
+<div class="footer"><p>Powered by <a href="https://arc.io">Arc</a> | Chain ID: 5042002</p></div>
+<script>
+let provider,signer,contract;
+const CA="0x7bB05bE291B33CFCB7BFb8A0b66Db4cd049C412d";
+const ABI=[
+  "function assessRisk(address wallet, uint256 riskScore, uint8 level) external",
+  "function triggerAlert(address wallet, uint8 alertType, uint256 severity, string description) external",
+  "function acknowledgeAlert(uint256 alertId) external",
+  "function resolveAlert(uint256 alertId) external",
+  "function flagAddress(address wallet, string reason) external",
+  "function unflagAddress(address wallet) external",
+  "function trustAddress(address wallet) external",
+  "function startMonitoring(address wallet) external",
+  "function stopMonitoring(address wallet) external",
+  "function updateAlertRule(uint8 alertType, uint256 threshold, uint256 cooldownSeconds, bool enabled) external",
+  "function setRiskEngine(address newEngine) external",
+  "function transferOwnership(address newOwner) external",
+  "function getAssessment(address wallet) view returns (uint256 riskScore, uint8 level, uint256 lastAssessed, uint256 assessmentCount, bool isMonitored)",
+  "function getRiskFactors(address wallet) view returns (tuple(uint8 alertType, uint256 weight, uint256 occurrences, uint256 lastOccurrence, bool active)[])",
+  "function getWalletAlerts(address wallet) view returns (tuple(uint256 id, address wallet, uint8 alertType, uint256 severity, string description, uint256 timestamp, bool acknowledged, bool resolved)[])",
+  "function getAllAlerts(uint256 offset, uint256 limit) view returns (tuple(uint256 id, address wallet, uint8 alertType, uint256 severity, string description, uint256 timestamp, bool acknowledged, bool resolved)[])",
+  "function isFlagged(address wallet) view returns (bool)",
+  "function isTrusted(address wallet) view returns (bool)",
+  "function getMonitoredWallets(uint256 offset, uint256 limit) view returns (address[])",
+  "function totalMonitored() view returns (uint256)",
+  "function RISK_SCORE_MAX() view returns (uint256)",
+  "function ALERT_THRESHOLD() view returns (uint256)",
+  "function owner() view returns (address)",
+  "function riskEngine() view returns (address)",
+  "function nextAlertId() view returns (uint256)",
+  "function totalAlertsTriggered() view returns (uint256)",
+  "function totalAlertsResolved() view returns (uint256)",
+  "event RiskAssessed(address indexed wallet, uint256 riskScore, uint8 level)",
+  "event AlertTriggered(uint256 alertId, address indexed wallet, uint8 alertType, uint256 severity)",
+  "event WalletFlagged(address indexed wallet, string reason)",
+  "event WalletUnflagged(address indexed wallet)",
+  "event AlertAcknowledged(uint256 alertId, address indexed wallet)",
+  "event AlertResolved(uint256 alertId, address indexed wallet)"
+];
+
+
+async function connectWallet(){
+  try{
+    if(!window.ethereum){alert("Install MetaMask");return}
+    provider=new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts",[]);
+    signer=await provider.getSigner();
+    const addr=await signer.getAddress();
+    document.getElementById("walletInfo").textContent=addr.slice(0,6)+"..."+addr.slice(-4);
+    if(CA!=="YOUR_DEPLOYED_ADDRESS")contract=new ethers.Contract(CA,ABI,signer);
+  }catch(e){alert("Error:"+e.message)}
+}
+function showResult(id,d){document.getElementById(id).textContent=JSON.stringify(d,null,2)}
+function showError(id,e){document.getElementById(id).textContent="Error:"+e.message}
+
+        async function assessRisk() {
+            if (!contract) { alert("Connect wallet first"); return; }
+            try {
+                const addr = document.getElementById("riskAddr").value;
+                const a = await contract.getRiskAssessment(addr);
+                showResult("riskRes", { level: Number(a.level), score: Number(a.score) });
+            } catch (err) { showError("riskRes", err); }
+        }
+        async function addAlertRule() {
+            if (!contract) { alert("Connect wallet first"); return; }
+            try {
+                const t = ethers.parseUnits(document.getElementById("alertThreshold").value, 18);
+                const tx = await contract.addAlertRule(t, 2);
+                await tx.wait();
+                showResult("alertRes", { status: "Rule added" });
+            } catch (err) { showError("alertRes", err); }
+        }
+        async function getAlertHistory() {
+            if (!contract) { alert("Connect wallet first"); return; }
+            try {
+                const addr = await signer.getAddress();
+                const alerts = await contract.getAlertsByWallet(addr);
+                showResult("alertHistRes", alerts.map(a => ({ level: Number(a.level), message: a.message })));
+            } catch (err) { showError("alertHistRes", err); }
+        }
+</script>
+</body>
+</html>
