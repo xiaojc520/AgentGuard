@@ -4,79 +4,166 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentGuard - Arc AI Agents</title>
-<!--<script src="https://cdn.ethers.io/lib/ethers-6.13.4.umd.min.js"></script>-->
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0e1a;color:#e2e8f0;font-family:Inter,system-ui,sans-serif}
-.header{background:linear-gradient(135deg,#0a0e1a,#ef444422);padding:2rem;border-bottom:1px solid #ef444433;display:flex;align-items:center;justify-content:space-between}
-.header h1{color:#ef4444;font-size:1.8rem}
-.tag{background:#ef444433;color:#ef4444;padding:.3rem .8rem;border-radius:9999px;font-size:.8rem}
-.wallet-bar{background:#ef444411;padding:1rem 2rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid #ef444422}
-.btn{background:#ef4444;color:#0a0e1a;padding:.5rem 1.5rem;border:none;border-radius:8px;cursor:pointer;font-weight:600}
+body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+.header{background:linear-gradient(135deg,#0d1117 60%,#1a0505 100%);padding:1.5rem 2rem;border-bottom:1px solid #ef444430;display:flex;align-items:center;justify-content:space-between}
+.header h1{color:#ef4444;font-size:1.8rem;font-weight:700;letter-spacing:-.5px}
+.tag{background:#ef444420;color:#ef4444;padding:.3rem .9rem;border-radius:9999px;font-size:.78rem;border:1px solid #ef444430}
+.wallet-bar{background:#0d1117;padding:.9rem 2rem;display:flex;align-items:center;gap:1rem;border-bottom:1px solid #ffffff10}
+.btn-connect{background:#ef4444;color:#fff;padding:.55rem 1.5rem;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem;transition:all .2s}
+.btn-connect:hover{background:#dc2626}
+.btn-connected{background:#166534;padding:.55rem 1.5rem;border:none;border-radius:8px;cursor:default;font-weight:600;font-size:.88rem;color:#4ade80}
 .info{font-size:.85rem;color:#94a3b8}
-.container{max-width:900px;margin:2rem auto;padding:0 1rem}
-.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;margin-bottom:2rem}
-.feature{background:#ef444411;padding:1rem;border-radius:8px;border:1px solid #ef444422}
-.card{background:#ef444408;border:1px solid #ef444422;border-radius:12px;padding:1.5rem;margin-bottom:1rem}
-.card h3{color:#ef4444;margin-bottom:1rem}
-.ig{display:flex;gap:.5rem;flex-wrap:wrap}
-.ig input,.ig select{background:#ef444411;border:1px solid #ef444433;color:#e2e8f0;padding:.6rem 1rem;border-radius:8px;flex:1;min-width:150px}
-.ig button{background:#ef4444;color:#0a0e1a;padding:.6rem 1.2rem;border:none;border-radius:8px;cursor:pointer;font-weight:600}
-.rb{background:#ef444408;border:1px dashed #ef444422;border-radius:8px;padding:1rem;margin-top:1rem;font-size:.85rem;color:#94a3b8;min-height:60px;white-space:pre-wrap}
-.footer{text-align:center;padding:2rem;color:#475569;font-size:.8rem}
-.footer a{color:#ef4444}
-@media(max-width:600px){.header{padding:1rem}.ig{flex-direction:column}.ig input{min-width:100%}}
+.container{max-width:800px;margin:2rem auto;padding:0 1.5rem}
+.features{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;margin-bottom:2rem}
+.feature{background:#ffffff04;padding:.85rem 1rem;border-radius:10px;border:1px solid #ffffff08;font-size:.86rem;color:#cbd5e1;display:flex;align-items:center;gap:.6rem}
+.feature .check{color:#22c55e;font-weight:bold}
+.card{background:#0d1117;border:1px solid #ffffff0c;border-radius:14px;padding:1.5rem;margin-bottom:1.2rem}
+.card h3{color:#f1f5f9;margin-bottom:1.1rem;font-size:1.05rem;font-weight:600}
+.input-row{display:flex;gap:.7rem;align-items:center;margin-bottom:.8rem}
+.input-row input,.input-row select{background:#0a0e1a;border:1px solid #ffffff18;color:#e2e8f0;padding:.72rem 1rem;border-radius:8px;flex:1;font-size:.9rem;width:100%;outline:none;transition:border .2s}
+.input-row input:focus,.input-row select:focus{border-color:#ef444450}
+.input-row input::placeholder{color:#4b5563}
+.btn-action{background:#ef4444;color:#fff;padding:.72rem 1.4rem;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:.88rem;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.btn-action:hover{background:#dc2626}
+.btn-action:disabled{opacity:.4;cursor:not-allowed;background:#374151}
+.btn-secondary{background:#1e293b;color:#cbd5e1;padding:.65rem 1.2rem;border:1px solid #334155;border-radius:8px;cursor:pointer;font-size:.87rem;font-weight:500;transition:all .2s}
+.btn-secondary:hover{background:#334155}
+.result-box{background:#080b12;border:1px dashed #ffffff15;border-radius:10px;padding:1rem 1.1rem;margin-top:.8rem;font-size:.84rem;color:#94a3b8;min-height:48px;white-space:pre-wrap;overflow-x:auto;font-family:'Cascadia Code','Fira Code',Consolas,monospace;line-height:1.55}
+.result-box.success{border-color:#22c55e30;color:#86efac}
+.result-box.error{border-color:#ef444430;color:#fca5a5}
+.footer{text-align:center;padding:2.5rem;color:#334155;font-size:.78rem}
+.footer a{color:#ef4444;text-decoration:none}
+.footer a:hover{text-decoration:underline}
+.label{font-size:.82rem;color:#64748b;margin-bottom:.35rem;display:block}
+.select-wrap{position:relative}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center;padding-right:2.2rem}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b7280;margin-right:.5px;vertical-align:middle}
+.status-dot.connected{background:#22c55e;box-shadow:0 0 6px #22c55e66}
+@media(max-width:650px){.header h1{font-size:1.4rem}.input-row{flex-direction:column}.btn-action{width:100%}}
 </style>
 </head>
 <body>
-<div class="header"><h1>AgentGuard</h1><span class="tag">AI Agents</span></div>
-<div class="wallet-bar"><button class="btn" onclick="connectWallet()">Connect Wallet</button><span class="info" id="walletInfo">Not connected</span></div>
-<div class="container">
-<div class="features"><div class="feature"><span style="color:#ef4444">&#10003;</span> Multi-factor risk assessment</div>
-<div class="feature"><span style="color:#ef4444">&#10003;</span> Custom alert rules</div>
-<div class="feature"><span style="color:#ef4444">&#10003;</span> Blacklist/whitelist</div>
-<div class="feature"><span style="color:#ef4444">&#10003;</span> Risk level tiers</div>
-<div class="feature"><span style="color:#ef4444">&#10003;</span> Monitoring history</div></div>
-<div class="card">
-            <h3>Assess Wallet Risk</h3>
-            <div class="input-group">
-                <input id="riskAddr" type="text" placeholder="Wallet address" />
-                <button onclick="assessRisk()">Assess</button>
-            </div>
-            <div id="riskRes" class="result-box"></div>
-        </div>
-        <div class="card">
-            <h3>Alert Rules</h3>
-            <div class="input-group">
-                <input id="alertThreshold" type="number" placeholder="Threshold USDC" />
-                <button onclick="addAlertRule()">Add Rule</button>
-            </div>
-            <div id="alertRes" class="result-box"></div>
-        </div>
-        <div class="card">
-            <h3>Alert History</h3>
-            <button onclick="getAlertHistory()">Load</button>
-            <div id="alertHistRes" class="result-box"></div>
-        </div>
+<div class="header"><h1>AgentGuard</h1><span class="tag">AI Risk Monitor</span></div>
+<div class="wallet-bar">
+    <button id="connectBtn" class="btn-connect" onclick="connectWallet()">Connect Wallet</button>
+    <span class="info" id="walletInfo"><span class="status-dot"></span>Not connected</span>
 </div>
-<div class="footer"><p>Powered by <a href="https://arc.io">Arc</a> | Chain ID: 5042002</p></div>
+
+<div class="container">
+
+<div class="features">
+    <div class="feature"><span class="check">&#10003;</span> Multi-factor risk assessment</div>
+    <div class="feature"><span class="check">&#10003;</span> Custom alert rules engine</div>
+    <div class="feature"><span class="check">&#10003;</span> Blacklist / whitelist mgmt</div>
+    <div class="feature"><span class="check">&#10003;</span> Real-time alert lifecycle</div>
+    <div class="feature"><span class="check">&#10003;</span> On-chain audit trail</div>
+</div>
+
+<!-- Assess My Risk -->
+<div class="card">
+    <h3>Assess My Risk</h3>
+    <button class="btn-action" onclick="assessMyRisk()" style="width:auto">Check Connected Wallet</button>
+    <div id="riskRes" class="result-box"></div>
+</div>
+
+<!-- Assess Any Address -->
+<div class="card">
+    <h3>Assess Any Address</h3>
+    <label class="label">Enter wallet address to check:</label>
+    <div class="input-row">
+        <input id="riskAddr" type="text" placeholder="0x..." />
+        <button class="btn-action" onclick="assessRisk()">Assess</button>
+    </div>
+    <div id="customRiskRes" class="result-box"></div>
+</div>
+
+<!-- Alert Rules -->
+<div class="card">
+    <h3>Update Alert Rule</h3>
+    <div class="input-row">
+        <div class="select-wrap" style="flex:1">
+            <select id="alertTypeSelect">
+                <option value="0">Abnormal Large Transfer</option>
+                <option value="1">New Contract Interaction</option>
+                <option value="2">High Frequency Activity</option>
+                <option value="3">Blacklist Contact</option>
+                <option value="4">Suspicious Pattern</option>
+                <option value="5">Balance Drain</option>
+                <option value="6">Unverified Contract Call</option>
+            </select>
+        </div>
+        <input id="alertThreshold" type="number" placeholder="Threshold (USDC)" style="flex:1;min-width:140px" />
+        <input id="alertCooldown" type="number" placeholder="Cooldown (sec)" style="flex:1;min-width:120px" />
+    </div>
+    <button class="btn-action" onclick="updateAlertRule()">Update Rule</button>
+    <div id="alertRes" class="result-box"></div>
+</div>
+
+<!-- Alert History -->
+<div class="card">
+    <h3>All Alerts</h3>
+    <div class="input-row">
+        <input id="offsetInput" type="number" placeholder="Offset" value="0" style="flex:0.5" />
+        <input id="limitInput" type="number" placeholder="Limit" value="10" style="flex:0.5" />
+        <button class="btn-action" onclick="getAllAlerts()">Load Alerts</button>
+    </div>
+    <div id="alertHistRes" class="result-box"></div>
+</div>
+
+<!-- Address Management -->
+<div class="card">
+    <h3>Address Management (Owner)</h3>
+    <label class="label">Flag risky address:</label>
+    <div class="input-row">
+        <input id="flagAddr" type="text" placeholder="Wallet address" />
+        <input id="flagReason" type="text" placeholder="Reason" style="flex:1" />
+        <button class="btn-action" onclick="flagAddrFn()">Flag</button>
+    </div>
+    <label class="label">Trust safe address:</label>
+    <div class="input-row">
+        <input id="trustAddr" type="text" placeholder="Wallet address" />
+        <button class="btn-action" onclick="trustAddrFn()">Trust</button>
+    </div>
+    <div id="addrRes" class="result-box"></div>
+</div>
+
+<!-- Stats -->
+<div class="card">
+    <h3>System Stats</h3>
+    <button class="btn-secondary" onclick="loadStats()">Refresh Stats</button>
+    <div id="statsRes" class="result-box"></div>
+</div>
+
+</div>
+
+<div class="footer"><p>Powered by <a href="https://arc.io" target="_blank">Arc Network</a> | Chain ID 5042002 | AgentGuard v1.0</p></div>
+
 <script>
-let provider,signer,contract;
-const CA="0x7bB05bE291B33CFCB7BFb8A0b66Db4cd049C412d";
-const ABI=[
+let provider, signer, contract;
+let currentAddress = "";
+
+const CA = "0x7bB05bE291B33CFCB7BFb8A0b66Db4cd049C412d";
+
+const ABI = [
   "function assessRisk(address wallet, uint256 riskScore, uint8 level) external",
+  "function addRiskFactor(address wallet, uint8 alertType, uint256 weight, uint256 occurrences) external",
+  "function removeRiskFactor(address wallet, uint256 index) external",
+  "function batchAssessRisk(address[] wallets, uint256[] riskScores, uint8[] levels) external",
   "function triggerAlert(address wallet, uint8 alertType, uint256 severity, string description) external",
   "function acknowledgeAlert(uint256 alertId) external",
   "function resolveAlert(uint256 alertId) external",
   "function flagAddress(address wallet, string reason) external",
   "function unflagAddress(address wallet) external",
   "function trustAddress(address wallet) external",
-  "function startMonitoring(address wallet) external",
-  "function stopMonitoring(address wallet) external",
-  "function updateAlertRule(uint8 alertType, uint256 threshold, uint256 cooldownSeconds, bool enabled) external",
-  "function setRiskEngine(address newEngine) external",
-  "function transferOwnership(address newOwner) external",
+  "function untrustAddress(address wallet) external",
+  "function updateAlertRule(uint8 alertType, uint256 threshold, uint256 cooldownSeconds, bool enabled) external onlyOwner",
+  "function startMonitoring(address wallet) external onlyOwner",
+  "function stopMonitoring(address wallet) external onlyOwner",
+  "function setRiskEngine(address newEngine) external onlyOwner",
+  "function transferOwnership(address newOwner) external onlyOwner",
   "function getAssessment(address wallet) view returns (uint256 riskScore, uint8 level, uint256 lastAssessed, uint256 assessmentCount, bool isMonitored)",
   "function getRiskFactors(address wallet) view returns (tuple(uint8 alertType, uint256 weight, uint256 occurrences, uint256 lastOccurrence, bool active)[])",
   "function getWalletAlerts(address wallet) view returns (tuple(uint256 id, address wallet, uint8 alertType, uint256 severity, string description, uint256 timestamp, bool acknowledged, bool resolved)[])",
@@ -91,55 +178,180 @@ const ABI=[
   "function riskEngine() view returns (address)",
   "function nextAlertId() view returns (uint256)",
   "function totalAlertsTriggered() view returns (uint256)",
-  "function totalAlertsResolved() view returns (uint256)",
-  "event RiskAssessed(address indexed wallet, uint256 riskScore, uint8 level)",
-  "event AlertTriggered(uint256 alertId, address indexed wallet, uint8 alertType, uint256 severity)",
-  "event WalletFlagged(address indexed wallet, string reason)",
-  "event WalletUnflagged(address indexed wallet)",
-  "event AlertAcknowledged(uint256 alertId, address indexed wallet)",
-  "event AlertResolved(uint256 alertId, address indexed wallet)"
+  "function totalAlertsResolved() view returns (uint256)"
 ];
 
+const LEVELS = ["Safe", "Low", "Medium", "High", "Critical"];
+const ALERT_TYPES = ["AbnormalLargeTransfer","NewContractInteraction","HighFrequencyActivity","BlacklistContact","SuspiciousPattern","BalanceDrain","UnverifiedContractCall"];
 
-async function connectWallet(){
-  try{
-    if(!window.ethereum){alert("Install MetaMask");return}
-    provider=new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts",[]);
-    signer=await provider.getSigner();
-    const addr=await signer.getAddress();
-    document.getElementById("walletInfo").textContent=addr.slice(0,6)+"..."+addr.slice(-4);
-    if(CA!=="YOUR_DEPLOYED_ADDRESS")contract=new ethers.Contract(CA,ABI,signer);
-  }catch(e){alert("Error:"+e.message)}
+async function connectWallet() {
+  try {
+    if (!window.ethereum) { alert("Please install MetaMask first"); return; }
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    currentAddress = await signer.getAddress();
+
+    const btn = document.getElementById("connectBtn");
+    btn.className = "btn-connected";
+    btn.textContent = currentAddress.slice(0, 6) + "..." + currentAddress.slice(-4);
+
+    document.getElementById("walletInfo").innerHTML = '<span class="status-dot connected"></span>' + currentAddress;
+
+    contract = new ethers.Contract(CA, ABI, signer);
+  } catch (e) {
+    alert("Error: " + e.message);
+  }
 }
-function showResult(id,d){document.getElementById(id).textContent=JSON.stringify(d,null,2)}
-function showError(id,e){document.getElementById(id).textContent="Error:"+e.message}
 
-        async function assessRisk() {
-            if (!contract) { alert("Connect wallet first"); return; }
-            try {
-                const addr = document.getElementById("riskAddr").value;
-                const a = await contract.getRiskAssessment(addr);
-                showResult("riskRes", { level: Number(a.level), score: Number(a.score) });
-            } catch (err) { showError("riskRes", err); }
-        }
-        async function addAlertRule() {
-            if (!contract) { alert("Connect wallet first"); return; }
-            try {
-                const t = ethers.parseUnits(document.getElementById("alertThreshold").value, 18);
-                const tx = await contract.addAlertRule(t, 2);
-                await tx.wait();
-                showResult("alertRes", { status: "Rule added" });
-            } catch (err) { showError("alertRes", err); }
-        }
-        async function getAlertHistory() {
-            if (!contract) { alert("Connect wallet first"); return; }
-            try {
-                const addr = await signer.getAddress();
-                const alerts = await contract.getAlertsByWallet(addr);
-                showResult("alertHistRes", alerts.map(a => ({ level: Number(a.level), message: a.message })));
-            } catch (err) { showError("alertHistRes", err); }
-        }
+function showResult(id, data, isError) {
+  const el = document.getElementById(id);
+  el.textContent = JSON.stringify(data, null, 2);
+  el.className = "result-box " + (isError ? "error" : "success");
+}
+
+// --- Assess MY risk (auto uses connected wallet) ---
+async function assessMyRisk() {
+  if (!contract || !currentAddress) { alert("Connect wallet first"); return; }
+  try {
+    const r = await contract.getAssessment(currentAddress);
+    showResult("riskRes", {
+      wallet: currentAddress,
+      riskScore: Number(r.riskScore),
+      level: LEVELS[Number(r.level)] || "Unknown (" + Number(r.level) + ")",
+      lastAssessed: Number(r.lastAssessed) > 0 ? new Date(Number(r.lastAssessed) * 1000).toLocaleString() : "Never",
+      assessmentCount: Number(r.assessmentCount).toString(),
+      isMonitored: r.isMonitored
+    });
+  } catch (err) {
+    showResult("riskRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Assess custom address ---
+async function assessRisk() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const addr = document.getElementById("riskAddr").value.trim();
+    if (!addr) { alert("Enter an address"); return; }
+    if (!ethers.isAddress(addr)) { alert("Invalid address format"); return; }
+    const r = await contract.getAssessment(addr);
+    showResult("customRiskRes", {
+      wallet: addr,
+      riskScore: Number(r.riskScore),
+      level: LEVELS[Number(r.level)] || "Unknown (" + Number(r.level) + ")",
+      lastAssessed: Number(r.lastAssessed) > 0 ? new Date(Number(r.lastAssessed) * 1000).toLocaleString() : "Never",
+      assessmentCount: Number(r.assessmentCount).toString(),
+      isMonitored: r.isMonitored
+    });
+  } catch (err) {
+    showResult("customRiskRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Update Alert Rule ---
+async function updateAlertRule() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const alertType = parseInt(document.getElementById("alertTypeSelect").value);
+    const thresholdStr = document.getElementById("alertThreshold").value;
+    const cooldownStr = document.getElementById("alertCooldown").value;
+    if (thresholdStr === "" || cooldownStr === "") { alert("Fill in threshold and cooldown"); return; }
+    // USDC has 6 decimals as ERC-20 but we use raw units here; threshold is in smallest unit
+    const threshold = ethers.parseUnits(thresholdStr, 6); // 6 decimals for USDC ERC-20
+    const cooldownSeconds = parseInt(cooldownStr);
+    const tx = await contract.updateAlertRule(alertType, threshold, cooldownSeconds, true);
+    showResult("alertRes", { status: "Submitting transaction...", txHash: tx.hash }, false);
+    await tx.wait();
+    showResult("alertRes", { status: "Success!", txHash: tx.hash, blockNumber: tx.blockNumber }, false);
+  } catch (err) {
+    showResult("alertRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Get All Alerts ---
+async function getAllAlerts() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const offset = parseInt(document.getElementById("offsetInput").value) || 0;
+    const limit = parseInt(document.getElementById("limitInput").value) || 10;
+    const alerts = await contract.getAllAlerts(offset, limit);
+    const formatted = alerts.map(a => ({
+      id: Number(a.id),
+      wallet: a.wallet,
+      alertType: ALERT_TYPES[Number(a.alertType)] || "Type" + Number(a.alertType),
+      severity: Number(a.severity),
+      description: a.description,
+      timestamp: Number(a.timestamp) > 0 ? new Date(Number(a.timestamp) * 1000).toLocaleString() : "",
+      acknowledged: a.acknowledged,
+      resolved: a.resolved
+    }));
+    showResult("alertHistRes", formatted);
+  } catch (err) {
+    showResult("alertHistRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Flag Address ---
+async function flagAddrFn() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const addr = document.getElementById("flagAddr").value.trim();
+    const reason = document.getElementById("flagReason").value.trim();
+    if (!addr || !reason) { alert("Fill in address and reason"); return; }
+    if (!ethers.isAddress(addr)) { alert("Invalid address"); return; }
+    const tx = await contract.flagAddress(addr, reason);
+    await tx.wait();
+    showResult("addrRes", { status: "Flagged!", address: addr, reason: reason });
+  } catch (err) {
+    showResult("addrRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Trust Address ---
+async function trustAddrFn() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const addr = document.getElementById("trustAddr").value.trim();
+    if (!addr) { alert("Enter address"); return; }
+    if (!ethers.isAddress(addr)) { alert("Invalid address"); return; }
+    const tx = await contract.trustAddress(addr);
+    await tx.wait();
+    showResult("addrRes", { status: "Trusted!", address: addr });
+  } catch (err) {
+    showResult("addrRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// --- Load Stats ---
+async function loadStats() {
+  if (!contract) { alert("Connect wallet first"); return; }
+  try {
+    const [maxScore, thresh, nextId, triggered, resolved, monitored] = await Promise.all([
+      contract.RISK_SCORE_MAX(),
+      contract.ALERT_THRESHOLD(),
+      contract.nextAlertId(),
+      contract.totalAlertsTriggered(),
+      contract.totalAlertsResolved(),
+      contract.totalMonitored()
+    ]);
+    showResult("statsRes", {
+      maxRiskScore: Number(maxScore).toString(),
+      alertThreshold: Number(thresh).toString(),
+      nextAlertId: Number(nextId).toString(),
+      totalTriggered: Number(triggered).toString(),
+      totalResolved: Number(resolved).toString(),
+      monitoredWallets: Number(monitored).toString()
+    });
+  } catch (err) {
+    showResult("statsRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// Auto-check if already connected on page load
+if (window.ethereum && window.ethereum.selectedAddress) {
+  connectWallet();
+}
 </script>
 </body>
 </html>
