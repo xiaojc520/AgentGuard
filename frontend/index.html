@@ -291,8 +291,12 @@ async function connectWallet(){
 
 function out(id,data,err){
   var el=document.getElementById(id);
-  el.textContent=JSON.stringify(data,null,2);
-  el.className="rb"+(err?"":"");
+  var seen=[];
+  el.textContent=JSON.stringify(data,function(k,v){
+    if(typeof v==="bigint")return v.toString();
+    if(v&&typeof v==="object"&&v.type==="BigNumber")return v.hex;
+    return v;
+  },2);
   el.style.color=err?"#fca5a5":"#86efac";
 }
 
@@ -302,20 +306,20 @@ function needWrite(){if(!writeContract){alert("Connect your wallet first");retur
 async function assessMyRisk(){try{
   if(!currentAddr)return;
   var r=await readContract.getAssessment(currentAddr);
-  out("riskRes",{wallet:currentAddr,riskScore:+r[0],level:LVL[+r[1]]||"Unknown",lastAssessed:+r[2]?new Date(+r[2]*1000).toLocaleString():"Never",count:+r[3],monitored:r[4]});
+  out("riskRes",{wallet:currentAddr,riskScore:Number(r[0]),level:LVL[Number(r[1])]||"Unknown",lastAssessed:Number(r[2])?new Date(Number(r[2])*1000).toLocaleString():"Never",count:Number(r[3]),monitored:r[4]});
 }catch(e){out("riskRes",{error:e.reason||e.message},1)}}
 
 async function assessRisk(){try{
   var a=document.getElementById("riskAddr").value.trim();
   if(!a||!ethers.isAddress(a)){alert("Valid address required");return}
   var r=await readContract.getAssessment(a);
-  out("customRiskRes",{wallet:a,riskScore:+r[0],level:LVL[+r[1]]||"Unknown",lastAssessed:+r[2]?new Date(+r[2]*1000).toLocaleString():"Never",count:+r[3],monitored:r[4]});
+  out("customRiskRes",{wallet:a,riskScore:Number(r[0]),level:LVL[Number(r[1])]||"Unknown",lastAssessed:Number(r[2])?new Date(Number(r[2])*1000).toLocaleString():"Never",count:Number(r[3]),monitored:r[4]});
 }catch(e){out("customRiskRes",{error:e.reason||e.message},1)}}
 
 async function loadAlerts(){try{
   var o=parseInt(document.getElementById("offIn").value)||0,l=parseInt(document.getElementById("limIn").value)||10;
   var al=await readContract.getAllAlerts(o,l);
-  out("alertRes",al.map(function(a){return{id:+a[0],wallet:a[1],type:AT[+a[2]]||"T"+a[2],sev:+a[3],desc:a[4],time:+a[5]?new Date(+a[5]*1000).toLocaleString():"",ack:a[7],res:a[8]}}));
+  out("alertRes",al.map(function(a){return{id:Number(a[0]),wallet:a[1],type:AT[Number(a[2])]||"T"+a[2],sev:Number(a[3]),desc:a[4],time:Number(a[5])?new Date(Number(a[5])*1000).toLocaleString():"",ack:a[7],res:a[8]}}));
 }catch(e){out("alertRes",{error:e.reason||e.message},1)}}
 
 async function loadStats(){try{
@@ -332,7 +336,7 @@ async function doFlag(){if(!needWrite())return;try{
   document.getElementById("flagRes").className+=" tx-pending";
   await tx.wait();
   document.getElementById("flagRes").classList.remove("tx-pending");
-  out("flagRes",{status:"&#10004; Flagged!",txHash:tx.hash,block:+tx.blockNumber,address:a});
+  out("flagRes",{status:"Flagged!",txHash:tx.hash,block:Number(tx.blockNumber),address:a});
 }catch(e){out("flagRes",{error:e.reason||e.message},1)}}
 
 async function doTrust(){if(!needWrite())return;try{
@@ -340,7 +344,7 @@ async function doTrust(){if(!needWrite())return;try{
   var tx=await writeContract.trustAddress(a);
   out("trustRes",{status:"Pending...",hash:tx.hash});document.getElementById("trustRes").className+=" tx-pending";
   await tx.wait();document.getElementById("trustRes").classList.remove("tx-pending");
-  out("trustRes",{status:"&#10004; Trusted!",txHash:tx.hash,block:+tx.blockNumber});
+  out("trustRes",{status:"Trusted!",txHash:tx.hash,block:Number(tx.blockNumber)});
 }catch(e){out("trustRes",{error:e.reason||e.message},1)}}
 
 async function doTriggerAlert(){if(!needWrite())return;try{
@@ -349,7 +353,7 @@ async function doTriggerAlert(){if(!needWrite())return;try{
   var tx=await writeContract.triggerAlert(a,t,s,d);
   out("triggerRes",{status:"Pending...",hash:tx.hash});document.getElementById("triggerRes").className+=" tx-pending";
   await tx.wait();document.getElementById("triggerRes").classList.remove("tx-pending");
-  out("triggerRes",{status:"&#10004; Alert Triggered!",txHash:tx.hash,block:+tx.blockNumber,target:a,severity:s});
+  out("triggerRes",{status:"Alert Triggered!",txHash:tx.hash,block:Number(tx.blockNumber),target:a,severity:s});
 }catch(e){out("triggerRes",{error:e.reason||e.message},1)}}
 
 async function doAck(){if(!needWrite())return;try{
