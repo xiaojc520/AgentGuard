@@ -88,7 +88,13 @@ body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,-apple-sy
 <div class="footer"><p>Powered by <a href="https://arc.io" target="_blank">Arc Network</a> | Chain ID 5042002</p></div>
 
 <script>
-let provider, signer, contract;
+// ─── Read-only provider (always hits Arc RPC, independent of MetaMask network) ──
+const ARC_RPC = "https://rpc.testnet.arc.network";
+const ARC_CHAIN_ID = 5042002;
+const ARC_CHAIN_ID_HEX = "0x4cf7e2"; // 5042002 in hex
+
+let readProvider, readContract;   // read-only (RPC)
+let signer, writeContract;        // write (MetaMask)
 let currentAddress = "";
 
 const CA = "0x7bB05bE291B33CFCB7BFb8A0b66Db4cd049C412d";
@@ -105,27 +111,82 @@ const ABI = [
   "function totalAlertsTriggered() view returns (uint256)",
   "function totalAlertsResolved() view returns (uint256)",
   "function getAllAlerts(uint256 offset, uint256 limit) view returns (tuple(uint256 id, address wallet, uint8 alertType, uint256 severity, string description, uint256 timestamp, bool acknowledged, bool resolved)[])",
-  "event RiskAssessed(address indexed wallet, uint256 riskScore, uint8 level)"
+  "function flagAddress(address wallet, string reason) external",
+  "function unflagAddress(address wallet) external",
+  "function trustAddress(address wallet) external",
+  "function untrustAddress(address wallet) external",
+  "function updateAlertRule(uint8 alertType, uint256 threshold, uint256 cooldownSeconds, bool enabled) external",
+  "function startMonitoring(address wallet) external",
+  "function stopMonitoring(address wallet) external",
+  "function setRiskEngine(address newEngine) external",
+  "function transferOwnership(address newOwner) external",
+  "function owner() view returns (address)",
+  "function riskEngine() view returns (address)"
 ];
 
 const LEVELS = ["Safe", "Low", "Medium", "High", "Critical"];
 
+// ─── Initialize read-only contract (works regardless of MetaMask network) ──
+function initReadContract() {
+  readProvider = new ethers.JsonRpcProvider(ARC_RPC);
+  readContract = new ethers.Contract(CA, ABI, readProvider);
+}
+initReadContract();
+
+// ─── Network switch helper ──
+async function ensureArcNetwork() {
+  try {
+    const chainIdHex = await window.ethereum.request({ method: "eth_chainId" });
+    if (parseInt(chainIdHex) !== ARC_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: ARC_CHAIN_ID_HEX }],
+        });
+      } catch (switchErr) {
+        // Chain not added yet → add it
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: ARC_CHAIN_ID_HEX,
+              chainName: "Arc Testnet",
+              rpcUrls: [ARC_RPC],
+              nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+            }],
+          });
+        } else {
+          throw switchErr;
+        }
+      }
+    }
+  } catch (e) {
+    alert("Please switch MetaMask to Arc Testnet (Chain ID 5042002)\nError: " + e.message);
+    return false;
+  }
+  return true;
+}
+
 async function connectWallet() {
   try {
     if (!window.ethereum) { alert("Please install MetaMask"); return; }
-    provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = await provider.getSigner();
+    // Switch to Arc network first
+    if (!await ensureArcNetwork()) return;
+
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    signer = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
     currentAddress = await signer.getAddress();
+
+    // Write contract uses MetaMask signer
+    writeContract = new ethers.Contract(CA, ABI, signer);
 
     const btn = document.getElementById("connectBtn");
     btn.className = "btn-connected";
     btn.textContent = currentAddress.slice(0, 6) + "..." + currentAddress.slice(-4);
     btn.onclick = null;
 
-    document.getElementById("walletInfo").innerHTML = '<span class="status-dot connected"></span>' + currentAddress;
-
-    contract = new ethers.Contract(CA, ABI, signer);
+    document.getElementById("walletInfo").innerHTML =
+      '<span class="status-dot connected"></span>' + currentAddress;
   } catch (e) {
     alert("Error: " + e.message);
   }
@@ -137,16 +198,17 @@ function showResult(id, data, isError) {
   el.style.color = isError ? "#fca5a5" : "#86efac";
 }
 
+// ─── Assess (uses read-only contract, no MetaMask needed) ───
 async function assessMyRisk() {
   if (!currentAddress) { alert("Connect wallet first"); return; }
   try {
-    const r = await contract.getAssessment(currentAddress);
+    const r = await readContract.getAssessment(currentAddress);
     showResult("riskRes", {
       wallet: currentAddress,
       riskScore: Number(r[0]),
       level: LEVELS[Number(r[1])] || "Unknown",
       lastAssessed: Number(r[2]) > 0 ? new Date(Number(r[2]) * 1000).toLocaleString() : "Never",
-      assessmentCount: Number(r[3]),
+      assessmentCount: Number(r[3]).toString(),
       isMonitored: r[4]
     });
   } catch (err) {
@@ -155,17 +217,17 @@ async function assessMyRisk() {
 }
 
 async function assessRisk() {
-  if (!contract) { alert("Connect wallet first"); return; }
   try {
     const addr = document.getElementById("riskAddr").value.trim();
     if (!addr) return;
-    const r = await contract.getAssessment(addr);
+    if (!ethers.isAddress(addr)) { alert("Invalid address"); return; }
+    const r = await readContract.getAssessment(addr);
     showResult("customRiskRes", {
       wallet: addr,
       riskScore: Number(r[0]),
       level: LEVELS[Number(r[1])] || "Unknown",
       lastAssessed: Number(r[2]) > 0 ? new Date(Number(r[2]) * 1000).toLocaleString() : "Never",
-      assessmentCount: Number(r[3]),
+      assessmentCount: Number(r[3]).toString(),
       isMonitored: r[4]
     });
   } catch (err) {
@@ -174,17 +236,17 @@ async function assessRisk() {
 }
 
 async function getAllAlerts() {
-  if (!contract) { alert("Connect wallet first"); return; }
   try {
     const offset = parseInt(document.getElementById("offsetInput").value) || 0;
     const limit = parseInt(document.getElementById("limitInput").value) || 10;
-    const alerts = await contract.getAllAlerts(offset, limit);
+    const alerts = await readContract.getAllAlerts(offset, limit);
     showResult("alertHistRes", alerts.map(a => ({
       id: Number(a[0]),
       wallet: a[1],
       alertType: Number(a[2]),
       severity: Number(a[3]),
-      timestamp: Number(a[5]) > 0 ? new Date(Number(a[5]) * 1000).toLocaleString() : ""
+      description: a[4],
+      time: Number(a[5]) > 0 ? new Date(Number(a[5]) * 1000).toLocaleString() : ""
     })));
   } catch (err) {
     showResult("alertHistRes", { error: err.reason || err.message }, true);
@@ -192,15 +254,14 @@ async function getAllAlerts() {
 }
 
 async function loadStats() {
-  if (!contract) { alert("Connect wallet first"); return; }
   try {
     const [maxScore, thresh, nextId, triggered, resolved, monitored] = await Promise.all([
-      contract.RISK_SCORE_MAX(),
-      contract.ALERT_THRESHOLD(),
-      contract.nextAlertId(),
-      contract.totalAlertsTriggered(),
-      contract.totalAlertsResolved(),
-      contract.totalMonitored()
+      readContract.RISK_SCORE_MAX(),
+      readContract.ALERT_THRESHOLD(),
+      readContract.nextAlertId(),
+      readContract.totalAlertsTriggered(),
+      readContract.totalAlertsResolved(),
+      readContract.totalMonitored()
     ]);
     showResult("statsRes", {
       maxRiskScore: maxScore.toString(),
@@ -213,6 +274,41 @@ async function loadStats() {
   } catch (err) {
     showResult("statsRes", { error: err.reason || err.message }, true);
   }
+}
+
+// ─── Write operations (need MetaMask) ───
+async function flagAddrFn() {
+  if (!writeContract) { alert("Connect wallet first (and switch to Arc Testnet)"); return; }
+  try {
+    const addr = document.getElementById("flagAddr").value.trim();
+    const reason = document.getElementById("flagReason").value.trim();
+    if (!addr || !reason) { alert("Fill in address and reason"); return; }
+    const tx = await writeContract.flagAddress(addr, reason);
+    showResult("addrRes", { status: "Submitted", txHash: tx.hash });
+    await tx.wait();
+    showResult("addrRes", { status: "Flagged!", address: addr, reason });
+  } catch (err) {
+    showResult("addrRes", { error: err.reason || err.message }, true);
+  }
+}
+
+async function trustAddrFn() {
+  if (!writeContract) { alert("Connect wallet first (and switch to Arc Testnet)"); return; }
+  try {
+    const addr = document.getElementById("trustAddr").value.trim();
+    if (!addr) { alert("Enter address"); return; }
+    const tx = await writeContract.trustAddress(addr);
+    showResult("addrRes", { status: "Submitted", txHash: tx.hash });
+    await tx.wait();
+    showResult("addrRes", { status: "Trusted!", address: addr });
+  } catch (err) {
+    showResult("addrRes", { error: err.reason || err.message }, true);
+  }
+}
+
+// Auto-check on load
+if (window.ethereum && window.ethereum.selectedAddress) {
+  connectWallet();
 }
 </script>
 </body>
